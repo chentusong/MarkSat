@@ -1,0 +1,9 @@
+C:\Users\chent\Desktop\Code\MarkSat\MarkSat\bin\Debug\MarkSat.exe.config
+C:\Users\chent\Desktop\Code\MarkSat\MarkSat\bin\Debug\MarkSat.exe
+C:\Users\chent\Desktop\Code\MarkSat\MarkSat\bin\Debug\MarkSat.pdb
+C:\Users\chent\Desktop\Code\MarkSat\MarkSat\bin\Debug\Google.Protobuf.dll
+C:\Users\chent\Desktop\Code\MarkSat\MarkSat\obj\Debug\MarkSat.csprojAssemblyReference.cache
+C:\Users\chent\Desktop\Code\MarkSat\MarkSat\obj\Debug\MarkSat.csproj.CoreCompileInputs.cache
+C:\Users\chent\Desktop\Code\MarkSat\MarkSat\obj\Debug\MarkSat.csproj.CopyComplete
+C:\Users\chent\Desktop\Code\MarkSat\MarkSat\obj\Debug\MarkSat.exe
+C:\Users\chent\Desktop\Code\MarkSat\MarkSat\obj\Debug\MarkSat.pdb
