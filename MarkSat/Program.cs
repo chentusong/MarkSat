@@ -359,7 +359,7 @@ select id , PolySemyIndex, {0} , {1}
                         bool success = sqlOperator.UpdateDataTable(sql);
                         if (!success)
                         {
-                            DataHelper.WriteLog(dtSource.Rows[index][2].ToString().ToLower() + "—" + word);
+                            DataHelper.WriteLog(dtSource.Rows[index][2].ToString().ToLower());
                         }
                     }
                 }
