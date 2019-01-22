@@ -6682,3 +6682,4 @@
   land-sea
   gender-typing
   cache-line
+update elibenglishwords set examples = 'it's clear that i haven't been able to convince her.' where id = 'convince' 

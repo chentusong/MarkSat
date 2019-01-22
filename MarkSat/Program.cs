@@ -12,8 +12,7 @@ namespace MarkSat
     {
         static void Main(string[] args)
         {
-            UpdateCOCAIndexNull();
-            UpdateCOCA60000();
+            UpdateSentence();
         }
 
 
@@ -386,5 +385,56 @@ select id , PolySemyIndex, {0} , {1}
                 throw new Exception(ex.Message);
             }
         }
+
+        #region 更新单词例句
+
+        public static void UpdateSentence()
+        {
+            try
+            {
+                string filePath = Environment.CurrentDirectory + "\\词汇frombook - 例句 - 20190121.xlsx";
+                DataSet ds = DataHelper.ImportData(filePath);
+
+                DataTable dtUpdate = new DataTable();
+                dtUpdate.Columns.Add("word");
+                dtUpdate.Columns.Add("sentence");
+
+                foreach (DataTable data in ds.Tables)
+                {
+                    for (int i = 0; i < data.Rows.Count; i++)
+                    {
+                        DataRow drNew = dtUpdate.NewRow();
+                        drNew[0] = data.Rows[i][0].ToString();
+                        drNew[1] = data.Rows[i][4].ToString();
+                        dtUpdate.Rows.Add(drNew);
+                    }
+                }
+
+                MySqlOperator sqlOperator = new MySqlOperator();
+
+                for (int i = 0; i < dtUpdate.Rows.Count; i++)
+                {
+                    string word = dtUpdate.Rows[i][0].ToString().ToLower().Trim();
+                    string sentence = dtUpdate.Rows[i][1].ToString().ToLower().Trim().Replace("'", "\\'");
+                    if (!string.IsNullOrEmpty(word))
+                    {
+                        string sql = string.Format(@"update elibenglishwords set examples = '{0}' where id = '{1}' ",
+                                                      sentence, word);
+                        bool success = sqlOperator.UpdateDataTable(sql);
+                        if (!success)
+                        {
+                            //DataHelper.WriteLog(word);
+                        }
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+            }
+
+        }
+
+        #endregion
     }
 }
