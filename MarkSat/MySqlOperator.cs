@@ -15,7 +15,10 @@ class MySqlOperator
     public static MySqlConnection _conn = null;
     public static List<string> _fieldList = new List<string>()
     {
-        "id","issat","PolySemyIndex","BNCIndex","COCAIndex","ElibIndex","IsForVocabularTest"
+        "Id","Definition","Translation","PolysemyIndex",
+        "Phonetic","IsSAT","Examples","Audio","BNCIndex",
+        "COCAIndex","Collins","IsGRE","IsOxford","IsTOEFL",
+        "ElibIndex","IsForVocabularTest"
     };
 
     static MySqlOperator()

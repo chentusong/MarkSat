@@ -12,7 +12,7 @@ namespace MarkSat
     {
         static void Main(string[] args)
         {
-            UpdateSentence();
+            UpdatePolysemyWord();
         }
 
 
@@ -70,7 +70,6 @@ namespace MarkSat
         }
 
         #endregion
-
 
         /// <summary>
         /// 1. 找出存在于词库中但未标注为sat的单词，并返回词频  
@@ -319,6 +318,8 @@ select id , PolySemyIndex, {0} , {1}
 
         }
 
+        #region 更新单词库词频为COCA60000
+
         /// <summary>
         /// 更新单词库词频为COCA60000
         /// </summary>
@@ -369,25 +370,13 @@ select id , PolySemyIndex, {0} , {1}
             }
         }
 
-        /// <summary>
-        /// 字段cocaIndex设置为空
-        /// </summary>
-        public static void UpdateCOCAIndexNull()
-        {
-            try
-            {
-                MySqlOperator sqlOperator = new MySqlOperator();
-                string sql = string.Format(@"update elibenglishwords set cocaIndex = null ");
-                bool success = sqlOperator.UpdateDataTable(sql);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message);
-            }
-        }
+        #endregion
 
         #region 更新单词例句
 
+        /// <summary>
+        /// 更新单词例句
+        /// </summary>
         public static void UpdateSentence()
         {
             try
@@ -397,7 +386,8 @@ select id , PolySemyIndex, {0} , {1}
 
                 DataTable dtUpdate = new DataTable();
                 dtUpdate.Columns.Add("word");
-                dtUpdate.Columns.Add("sentence");
+                dtUpdate.Columns.Add("enSentence");
+                dtUpdate.Columns.Add("chSentence");
 
                 foreach (DataTable data in ds.Tables)
                 {
@@ -406,33 +396,128 @@ select id , PolySemyIndex, {0} , {1}
                         DataRow drNew = dtUpdate.NewRow();
                         drNew[0] = data.Rows[i][0].ToString();
                         drNew[1] = data.Rows[i][4].ToString();
+                        drNew[2] = data.Rows[i][5].ToString();
                         dtUpdate.Rows.Add(drNew);
                     }
                 }
 
+                string errorMessage = "";
                 MySqlOperator sqlOperator = new MySqlOperator();
 
                 for (int i = 0; i < dtUpdate.Rows.Count; i++)
                 {
                     string word = dtUpdate.Rows[i][0].ToString().ToLower().Trim();
-                    string sentence = dtUpdate.Rows[i][1].ToString().ToLower().Trim().Replace("'", "\\'");
+                    string enSentence = dtUpdate.Rows[i][1].ToString().ToLower().Trim().Replace("'", "\\'");
+                    string chSentence = dtUpdate.Rows[i][2].ToString().ToLower().Trim().Replace("'", "\\'");
+                    string sentence = "[{\"en\":\"" + enSentence + "\",\"ch\":\"" + chSentence + "\"}]";
+
                     if (!string.IsNullOrEmpty(word))
                     {
-                        string sql = string.Format(@"update elibenglishwords set examples = '{0}' where id = '{1}' ",
-                                                      sentence, word);
+                        string sql = string.Format(@"update elibenglishwords set examples = '{0}' where id = '{1}' ", sentence, word);
                         bool success = sqlOperator.UpdateDataTable(sql);
                         if (!success)
                         {
+                            errorMessage += word + "\r\n";
                             //DataHelper.WriteLog(word);
                         }
                     }
                 }
-
             }
             catch (Exception ex)
             {
             }
+        }
 
+        #endregion
+
+        #region 删除sat多义单词，重新上传
+
+        public static void UpdatePolysemyWord()
+        {
+            string filePath = Environment.CurrentDirectory + "\\多义单词.xlsx";
+            DataTable dtSource = DataHelper.ImportData(filePath).Tables[0];
+
+            MySqlOperator sqlOperator = new MySqlOperator();
+
+            Dictionary<string, List<DataRow>> wordDic = new Dictionary<string, List<DataRow>>();
+
+            // 获取源数据并进行分组
+            for (int i = 0; i < dtSource.Rows.Count; i++)
+            {
+                string word = dtSource.Rows[i][0].ToString().ToLower().Trim();
+                //string definition = dtSource.Rows[i][1].ToString();
+                //string translation = dtSource.Rows[i][2].ToString();
+                //string polysemy = dtSource.Rows[i][3].ToString();
+
+                if (string.IsNullOrEmpty(word))
+                    continue;
+
+                if (wordDic.ContainsKey(word))
+                    wordDic[word].Add(dtSource.Rows[i]);
+                else
+                    wordDic.Add(word, new List<DataRow>() { dtSource.Rows[i] });
+            }
+
+            string message = "";
+            List<string> wordList = new List<string>(wordDic.Keys);
+
+            for (int i = 0; i < wordList.Count; i++)
+            {
+                string word = wordList[i];
+                string sql = string.Format("select * from elibenglishwords where id = '{0}' ", word);
+                DataTable dt = sqlOperator.QueryDataTable(sql);
+
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    // 构建插入数据SQL
+                    string updateSql = @"Insert into elibenglishwords ( 
+                                         Id,Definition,Translation,PolysemyIndex,Phonetic,
+                                         IsSAT,Examples,Audio,BNCIndex,COCAIndex,Collins,
+                                         IsGRE,IsOxford,IsTOEFL,ElibIndex,IsForVocabularTest )
+                                         values ";
+
+                    List<DataRow> rows = wordDic[word];
+                    for (int index = 0; index < rows.Count; index++)
+                    {
+                        updateSql += "\r\n(" + word + ","
+                                            + rows[index]["Definition"].ToString() + ","
+                                            + rows[index]["Translation"].ToString() + ","
+                                            + rows[index]["PolysemyIndex"].ToString() + ","
+                                            + dt.Rows[0]["Phonetic"].ToString() + ","
+                                            + dt.Rows[0]["IsSAT"].ToString() + ","
+                                            + dt.Rows[0]["Examples"].ToString() + ","
+                                            + dt.Rows[0]["Audio"].ToString() + ","
+                                            + dt.Rows[0]["BNCIndex"].ToString() + ","
+                                            + dt.Rows[0]["COCAIndex"].ToString() + ","
+                                            + dt.Rows[0]["Collins"].ToString() + ","
+                                            + dt.Rows[0]["IsGRE"].ToString() + ","
+                                            + dt.Rows[0]["IsOxford"].ToString() + ","
+                                            + dt.Rows[0]["IsTOEFL"].ToString() + ","
+                                            + dt.Rows[0]["ElibIndex"].ToString() + ","
+                                            + dt.Rows[0]["IsForVocabularTest"].ToString() + ","
+                                            + "),";
+                    }
+                    updateSql = updateSql.TrimEnd(',') + ";";
+
+
+                    // 构建删除sql
+                    string deleteSql = string.Format("delete from elibenglishwords where id = '{0}'", word);
+
+                    bool delete = sqlOperator.UpdateDataTable(deleteSql);
+                    if (delete)
+                    {
+                        bool update = sqlOperator.UpdateDataTable(updateSql);
+                        if (!update)
+                        {
+                            message += "更新出错:" + word;
+                        }
+                    }
+                    else
+                    {
+                        message += "删除出错:" + word;
+                    }
+                }
+            }
         }
 
         #endregion
