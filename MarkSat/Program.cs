@@ -434,7 +434,7 @@ select id , PolySemyIndex, {0} , {1}
 
         public static void UpdatePolysemyWord()
         {
-            string filePath = Environment.CurrentDirectory + "\\多义单词.xlsx";
+            string filePath = Environment.CurrentDirectory + "\\sat多义.xls";
             DataTable dtSource = DataHelper.ImportData(filePath).Tables[0];
 
             MySqlOperator sqlOperator = new MySqlOperator();
@@ -479,14 +479,14 @@ select id , PolySemyIndex, {0} , {1}
                     List<DataRow> rows = wordDic[word];
                     for (int index = 0; index < rows.Count; index++)
                     {
-                        updateSql += "\r\n(" + word + ","
-                                            + rows[index]["Definition"].ToString() + ","
-                                            + rows[index]["Translation"].ToString() + ","
-                                            + rows[index]["PolysemyIndex"].ToString() + ","
-                                            + dt.Rows[0]["Phonetic"].ToString() + ","
-                                            + dt.Rows[0]["IsSAT"].ToString() + ","
-                                            + dt.Rows[0]["Examples"].ToString() + ","
-                                            + dt.Rows[0]["Audio"].ToString() + ","
+                        updateSql += "\r\n( '" + word + "','"
+                                            + Replace(rows[index]["Definition"].ToString()) + "','"
+                                            + Replace(rows[index]["Translation"].ToString()) + "',"
+                                            + rows[index]["PolysemyIndex"].ToString() + ",'"
+                                            + Replace(dt.Rows[0]["Phonetic"].ToString()) + "',"
+                                            + dt.Rows[0]["IsSAT"].ToString() + ",'"
+                                            + Replace(dt.Rows[0]["Examples"].ToString()) + "','"
+                                            + dt.Rows[0]["Audio"].ToString() + "',"
                                             + dt.Rows[0]["BNCIndex"].ToString() + ","
                                             + dt.Rows[0]["COCAIndex"].ToString() + ","
                                             + dt.Rows[0]["Collins"].ToString() + ","
@@ -494,7 +494,7 @@ select id , PolySemyIndex, {0} , {1}
                                             + dt.Rows[0]["IsOxford"].ToString() + ","
                                             + dt.Rows[0]["IsTOEFL"].ToString() + ","
                                             + dt.Rows[0]["ElibIndex"].ToString() + ","
-                                            + dt.Rows[0]["IsForVocabularTest"].ToString() + ","
+                                            + dt.Rows[0]["IsForVocabularTest"].ToString()
                                             + "),";
                     }
                     updateSql = updateSql.TrimEnd(',') + ";";
@@ -518,6 +518,11 @@ select id , PolySemyIndex, {0} , {1}
                     }
                 }
             }
+        }
+
+        public static string Replace(string source)
+        {
+            return source.Replace("'", "\\'").Replace("\"", "\\\"");
         }
 
         #endregion
