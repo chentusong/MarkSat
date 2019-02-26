@@ -37,21 +37,26 @@ class MySqlOperator
     {
         try
         {
-            DataTable dt = TableStructure();
-
             _conn.Open();
             MySqlCommand cmd = new MySqlCommand(sql, _conn);
             cmd.CommandType = CommandType.Text;
             MySqlDataReader reader = cmd.ExecuteReader();
+
+            DataTable dt = new DataTable();
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                string colName = reader.GetName(i);
+                dt.Columns.Add(colName);
+            }
 
             while (reader.Read())
             {
                 if (reader.HasRows)//有一行读一行
                 {
                     DataRow drNew = dt.NewRow();
-                    foreach (string colName in _fieldList)
+                    foreach (DataColumn col in dt.Columns)
                     {
-                        drNew[colName] = reader[colName].ToString();
+                        drNew[col.ColumnName] = reader[col.ColumnName].ToString();
                     }
                     dt.Rows.Add(drNew);
                 }

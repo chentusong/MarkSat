@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,7 +13,7 @@ namespace MarkSat
     {
         static void Main(string[] args)
         {
-            UpdatePolysemyWord();
+            UpdateStory();
         }
 
 
@@ -432,9 +433,9 @@ select id , PolySemyIndex, {0} , {1}
 
         #region 删除sat多义单词，重新上传
 
-        public static void UpdatePolysemyWord()
+        public static void UpdateWordDefinition()
         {
-            string filePath = Environment.CurrentDirectory + "\\sat多义.xls";
+            string filePath = Environment.CurrentDirectory + "\\sat多义final.xls";
             DataTable dtSource = DataHelper.ImportData(filePath).Tables[0];
 
             MySqlOperator sqlOperator = new MySqlOperator();
@@ -444,11 +445,7 @@ select id , PolySemyIndex, {0} , {1}
             // 获取源数据并进行分组
             for (int i = 0; i < dtSource.Rows.Count; i++)
             {
-                string word = dtSource.Rows[i][0].ToString().ToLower().Trim();
-                //string definition = dtSource.Rows[i][1].ToString();
-                //string translation = dtSource.Rows[i][2].ToString();
-                //string polysemy = dtSource.Rows[i][3].ToString();
-
+                string word = dtSource.Rows[i]["Id"].ToString().ToLower().Trim();
                 if (string.IsNullOrEmpty(word))
                     continue;
 
@@ -456,6 +453,9 @@ select id , PolySemyIndex, {0} , {1}
                     wordDic[word].Add(dtSource.Rows[i]);
                 else
                     wordDic.Add(word, new List<DataRow>() { dtSource.Rows[i] });
+
+                int index = wordDic[word].Count - 1;
+                wordDic[word][index]["PolysemyIndex"] = index;
             }
 
             string message = "";
@@ -479,6 +479,38 @@ select id , PolySemyIndex, {0} , {1}
                     List<DataRow> rows = wordDic[word];
                     for (int index = 0; index < rows.Count; index++)
                     {
+                        string COCAIndexString = string.IsNullOrEmpty(dt.Rows[0]["COCAIndex"].ToString())
+                            ? "null"
+                            : dt.Rows[0]["COCAIndex"].ToString();
+
+                        string BNCIndexString = string.IsNullOrEmpty(dt.Rows[0]["BNCIndex"].ToString())
+                            ? "null"
+                            : dt.Rows[0]["BNCIndex"].ToString();
+
+                        string CollinsString = string.IsNullOrEmpty(dt.Rows[0]["Collins"].ToString())
+                            ? "null"
+                            : dt.Rows[0]["Collins"].ToString();
+
+                        string IsGREString = string.IsNullOrEmpty(dt.Rows[0]["IsGRE"].ToString())
+                            ? "null"
+                            : dt.Rows[0]["IsGRE"].ToString();
+
+                        string IsOxfordString = string.IsNullOrEmpty(dt.Rows[0]["IsOxford"].ToString())
+                            ? "null"
+                            : dt.Rows[0]["IsOxford"].ToString();
+
+                        string IsTOEFLString = string.IsNullOrEmpty(dt.Rows[0]["IsTOEFL"].ToString())
+                            ? "null"
+                            : dt.Rows[0]["IsTOEFL"].ToString();
+
+                        string ElibIndexString = string.IsNullOrEmpty(dt.Rows[0]["ElibIndex"].ToString())
+                            ? "null"
+                            : dt.Rows[0]["ElibIndex"].ToString();
+
+                        string IsForVocabularTestString = string.IsNullOrEmpty(dt.Rows[0]["IsForVocabularTest"].ToString())
+                            ? "null"
+                            : dt.Rows[0]["IsForVocabularTest"].ToString();
+
                         updateSql += "\r\n( '" + word + "','"
                                             + Replace(rows[index]["Definition"].ToString()) + "','"
                                             + Replace(rows[index]["Translation"].ToString()) + "',"
@@ -487,14 +519,14 @@ select id , PolySemyIndex, {0} , {1}
                                             + dt.Rows[0]["IsSAT"].ToString() + ",'"
                                             + Replace(dt.Rows[0]["Examples"].ToString()) + "','"
                                             + dt.Rows[0]["Audio"].ToString() + "',"
-                                            + dt.Rows[0]["BNCIndex"].ToString() + ","
-                                            + dt.Rows[0]["COCAIndex"].ToString() + ","
-                                            + dt.Rows[0]["Collins"].ToString() + ","
-                                            + dt.Rows[0]["IsGRE"].ToString() + ","
-                                            + dt.Rows[0]["IsOxford"].ToString() + ","
-                                            + dt.Rows[0]["IsTOEFL"].ToString() + ","
-                                            + dt.Rows[0]["ElibIndex"].ToString() + ","
-                                            + dt.Rows[0]["IsForVocabularTest"].ToString()
+                                            + BNCIndexString + ","
+                                            + COCAIndexString + ","
+                                            + CollinsString + ","
+                                            + IsGREString + ","
+                                            + IsOxfordString + ","
+                                            + IsTOEFLString + ","
+                                            + ElibIndexString + ","
+                                            + IsForVocabularTestString
                                             + "),";
                     }
                     updateSql = updateSql.TrimEnd(',') + ";";
@@ -526,5 +558,46 @@ select id , PolySemyIndex, {0} , {1}
         }
 
         #endregion
+
+        #region 更新助记词
+
+        public static void UpdateStory()
+        {
+            string filePath = Environment.CurrentDirectory + "\\sat单词助记to陈 0226.xlsx";
+            DataTable dtSource = DataHelper.ImportData(filePath).Tables[0];
+
+            string message = "";
+            MySqlOperator sqlOperator = new MySqlOperator();
+          
+            if (dtSource != null)
+            {
+                for (int i = 0; i < dtSource.Rows.Count; i++)
+                {
+                    string word = dtSource.Rows[i][0].ToString().Trim();
+                    string story = dtSource.Rows[i][3].ToString().Trim();
+
+                    // 构建删除sql
+                    string practiceSql = string.Format("select id from elibpractices where name = '{0}'", word);
+                    DataTable dt = sqlOperator.QueryDataTable(practiceSql);
+                    if (dt != null)
+                    {
+                        for (int index = 0; index < dt.Rows.Count; index++)
+                        {
+                            string id = dt.Rows[index][0].ToString();
+                            string updateHint = string.Format("update elibpracticehints set story = '{0}' where practiceId = '{1}'",
+                                story, id);
+                            bool success = sqlOperator.UpdateDataTable(updateHint);
+                            if (!success)
+                            {
+                                message += "word:" + word;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
+
+    #endregion
+
 }
